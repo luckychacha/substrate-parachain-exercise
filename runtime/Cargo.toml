@@ -23,6 +23,7 @@ smallvec = "1.11.0"
 
 # Local
 pallet-parachain-template = { path = "../pallets/template", default-features = false }
+pallet-parachain-staking = { path = "../pallets/staking", default-features = false }
 
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true, branch = "polkadot-v1.0.0" }
@@ -100,6 +101,7 @@ std = [
 	"pallet-session/std",
 	"pallet-sudo/std",
 	"pallet-parachain-template/std",
+	"pallet-parachain-staking/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -133,6 +135,7 @@ runtime-benchmarks = [
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-parachain-template/runtime-benchmarks",
+	"pallet-parachain-staking/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-sudo/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
@@ -159,6 +162,7 @@ try-runtime = [
 	"pallet-session/try-runtime",
 	"pallet-sudo/try-runtime",
 	"pallet-parachain-template/try-runtime",
+	"pallet-parachain-staking/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-xcm/try-runtime",
