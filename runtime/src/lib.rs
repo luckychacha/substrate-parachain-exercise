@@ -6,6 +6,9 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod pallets;
+pub use pallets::*;
+
 mod weights;
 pub mod xcm_config;
 
@@ -495,6 +498,9 @@ construct_runtime!(
 
 		// Template
 		TemplatePallet: pallet_parachain_template = 50,
+
+		// Staking
+		StakingPallet: pallet_parachain_staking = 51,
 	}
 );
 
