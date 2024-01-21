@@ -22,6 +22,7 @@ hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 smallvec = "1.11.0"
+serde = { version = "1.0.188" }
 
 # Local
 pallet-parachain-template = { path = "pallets/template", default-features = false }
@@ -48,6 +49,7 @@ sp-block-builder = { git = "https://github.com/paritytech/substrate", default-fe
 sp-consensus-aura = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 sp-inherents = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 sp-offchain = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 sp-session = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
