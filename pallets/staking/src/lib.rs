@@ -1,5 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::FullCodec;
+use frame_support::PalletId;
+use frame_support::sp_runtime::traits::AccountIdConversion;
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/v3/runtime/frame>
@@ -103,4 +106,11 @@ pub mod pallet {
 			}
 		}
 	}
+}
+
+pub fn account_id<A>() -> A
+where
+	A: FullCodec,
+{
+	PalletId(*b"py/staki").into_account_truncating()
 }
