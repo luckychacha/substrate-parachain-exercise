@@ -24,7 +24,7 @@ scale-info = { version = "2.9.0", default-features = false, features = ["derive"
 smallvec = "1.11.0"
 serde = { version = "1.0.188" }
 clap = { version = "4.4.2", features = ["derive"] }
-jsonrpsee = { version = "0.16.2", features = ["server"] }
+jsonrpsee = { version = "0.16.3", features = ["server"] }
 futures = "0.3.28"
 
 # Local
