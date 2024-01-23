@@ -19,7 +19,7 @@ codec.workspace = true
 hex-literal = { workspace = true, optional = true }
 log.workspace = true
 scale-info.workspace = true
-smallvec = "1.11.0"
+smallvec = "1.13.1"
 
 # Local
 pallet-parachain-template.workspace = true
