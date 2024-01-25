@@ -66,6 +66,8 @@ cumulus-client-service.workspace = true
 cumulus-primitives-core.workspace = true
 cumulus-primitives-parachain-inherent.workspace = true
 cumulus-relay-chain-interface.workspace = true
+cumulus-client-collator.workspace = true
+cumulus-client-consensus-proposer.workspace = true
 color-print.workspace = true
 
 [build-dependencies]
