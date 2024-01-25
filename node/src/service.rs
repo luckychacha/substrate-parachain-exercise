@@ -8,13 +8,14 @@ use cumulus_client_cli::CollatorOptions;
 use parachain_template_runtime::{opaque::Block, RuntimeApi};
 
 // Cumulus Imports
-use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
+use cumulus_client_consensus_aura::{AuraConsensus, SlotProportion};
+use aura::collators::basic;
 use cumulus_client_consensus_common::{
 	ParachainBlockImport as TParachainBlockImport, ParachainConsensus,
 };
 use cumulus_client_service::{
-	build_network, build_relay_chain_interface, prepare_node_config, start_collator,
-	start_full_node, BuildNetworkParams, StartCollatorParams, StartFullNodeParams,
+	build_network, build_relay_chain_interface, prepare_node_config, start_relay_chain_tasks,
+	start_relay_chain_tasks, BuildNetworkParams, StartCollatorParams, StartFullNodeParams,
 };
 use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_interface::RelayChainInterface;
@@ -68,7 +69,7 @@ pub fn new_partial(
 		ParachainClient,
 		ParachainBackend,
 		(),
-		sc_consensus::DefaultImportQueue<Block, ParachainClient>,
+		sc_consensus::DefaultImportQueue<Block>,
 		sc_transaction_pool::FullPool<Block, ParachainClient>,
 		(ParachainBlockImport, Option<Telemetry>, Option<TelemetryWorkerHandle>),
 	>,
@@ -312,7 +313,7 @@ async fn start_node_impl(
 			sync_service,
 		};
 
-		start_collator(params).await?;
+		start_relay_chain_tasks(params).await?;
 	} else {
 		let params = StartFullNodeParams {
 			client: client.clone(),
@@ -326,7 +327,7 @@ async fn start_node_impl(
 			sync_service,
 		};
 
-		start_full_node(params)?;
+		start_relay_chain_tasks(params)?;
 	}
 
 	start_network.start_network();
@@ -341,7 +342,7 @@ fn build_import_queue(
 	config: &Configuration,
 	telemetry: Option<TelemetryHandle>,
 	task_manager: &TaskManager,
-) -> Result<sc_consensus::DefaultImportQueue<Block, ParachainClient>, sc_service::Error> {
+) -> Result<sc_consensus::DefaultImportQueue<Block>, sc_service::Error> {
 	let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
 
 	cumulus_client_consensus_aura::import_queue::<
@@ -395,7 +396,7 @@ fn build_consensus(
 		telemetry.clone(),
 	);
 
-	let params = BuildAuraConsensusParams {
+	let params = aura::collators::basic {
 		proposer_factory,
 		create_inherent_data_providers: move |_, (relay_parent, validation_data)| {
 			let relay_chain_interface = relay_chain_interface.clone();
