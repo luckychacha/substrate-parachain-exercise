@@ -1,5 +1,5 @@
 use crate::*;
 
-impl pallet_parachain_staking::Config for Runtime {
+impl pallet_sequencer::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 }

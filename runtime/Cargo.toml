@@ -23,7 +23,7 @@ smallvec = "1.11.0"
 
 # Local
 pallet-parachain-template.workspace = true
-pallet-parachain-staking.workspace = true
+pallet-sequencer.workspace = true
 
 # Substrate
 frame-benchmarking = { workspace = true, optional = true }
@@ -101,7 +101,7 @@ std = [
 	"pallet-session/std",
 	"pallet-sudo/std",
 	"pallet-parachain-template/std",
-	"pallet-parachain-staking/std",
+	"pallet-sequencer/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
@@ -135,7 +135,7 @@ runtime-benchmarks = [
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collator-selection/runtime-benchmarks",
 	"pallet-parachain-template/runtime-benchmarks",
-	"pallet-parachain-staking/runtime-benchmarks",
+	"pallet-sequencer/runtime-benchmarks",
 	"pallet-timestamp/runtime-benchmarks",
 	"pallet-sudo/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
@@ -162,7 +162,7 @@ try-runtime = [
 	"pallet-session/try-runtime",
 	"pallet-sudo/try-runtime",
 	"pallet-parachain-template/try-runtime",
-	"pallet-parachain-staking/try-runtime",
+	"pallet-sequencer/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
 	"pallet-xcm/try-runtime",

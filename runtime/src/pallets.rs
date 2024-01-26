@@ -1,1 +1,1 @@
-mod staking;
+mod sequencer;

@@ -1,9 +1,9 @@
-//! Benchmarking setup for pallet-parachain-staking
+//! Benchmarking setup for pallet-sequencer
 
 use super::*;
 
 #[allow(unused)]
-use crate::Pallet as Staking;
+use crate::Pallet as Sequencer;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::RawOrigin;
 
@@ -17,4 +17,4 @@ benchmarks! {
 	}
 }
 
-impl_benchmark_test_suite!(Staking, crate::mock::new_test_ext(), crate::mock::Test,);
+impl_benchmark_test_suite!(Sequencer, crate::mock::new_test_ext(), crate::mock::Test,);

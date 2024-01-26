@@ -424,7 +424,7 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 }
 
 parameter_types! {
-	pub const Period: u32 = 6 * HOURS;
+	pub const Period: u32 = 4 * HOURS;
 	pub const Offset: u32 = 0;
 }
 
@@ -517,7 +517,7 @@ construct_runtime!(
 
 		// Template
 		TemplatePallet: pallet_parachain_template = 50,
-		Staking: pallet_parachain_staking = 51,
+		Sequencer: pallet_sequencer = 51,
 	}
 );
 

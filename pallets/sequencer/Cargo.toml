@@ -1,6 +1,6 @@
 [package]
-name = "pallet-parachain-staking"
-description = "FRAME pallet staking logic."
+name = "pallet-sequencer"
+description = "Pallet sequencer logic."
 homepage = "https://substrate.io"
 authors.workspace = true
 edition.workspace = true

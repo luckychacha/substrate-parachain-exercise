@@ -30,7 +30,7 @@ futures = "0.3.28"
 # Local
 parachain-template-runtime = { path = "runtime" }
 pallet-parachain-template = { path = "pallets/template", default-features = false }
-pallet-parachain-staking = { path = "pallets/staking", default-features = false }
+pallet-sequencer = { path = "pallets/sequencer", default-features = false }
 
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "release-polkadot-v1.1.0" }
