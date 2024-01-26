@@ -1,5 +1,6 @@
 use crate::*;
 use polkadot_runtime_common::prod_or_fast;
+use sp_staking::SessionIndex;
 
 parameter_types! {
 	// Six sessions in an era (24 hours).

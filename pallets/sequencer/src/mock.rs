@@ -5,6 +5,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	BuildStorage,
 };
+use sp_staking::SessionIndex;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -48,8 +49,13 @@ impl system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
+parameter_types! {
+	pub const SessionsPerEra: SessionIndex = 1;
+}
+
 impl crate::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
+	type SessionsPerEra = SessionsPerEra;
 }
 
 // Build genesis storage according to the mock runtime.
