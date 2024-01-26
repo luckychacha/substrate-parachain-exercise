@@ -21,12 +21,16 @@ mod benchmarking;
 pub mod pallet {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
-	use pallet_session::SessionManager;
+	use sp_staking::SessionIndex;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+		/// Number of sessions per era.
+		#[pallet::constant]
+		type SessionsPerEra: Get<SessionIndex>;
 	}
 
 	#[pallet::pallet]
@@ -48,6 +52,7 @@ pub mod pallet {
 		StorageOverflow,
 	}
 
+	
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
