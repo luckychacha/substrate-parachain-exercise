@@ -4,6 +4,9 @@ use codec::FullCodec;
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use frame_support::PalletId;
 pub use pallet::*;
+use pallet_session::SessionManager;
+use sp_staking::SessionIndex;
+use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -18,6 +21,7 @@ mod benchmarking;
 pub mod pallet {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
+	use pallet_session::SessionManager;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -75,4 +79,18 @@ pub mod pallet {
 			}
 		}
 	}
+}
+
+impl<T: Config> SessionManager<T::AccountId> for Pallet<T> {
+    fn new_session(new_index: SessionIndex) -> Option<Vec<T::AccountId>> {
+        todo!()
+    }
+
+    fn end_session(end_index: SessionIndex) {
+        todo!()
+    }
+
+    fn start_session(start_index: SessionIndex) {
+        todo!()
+    }
 }

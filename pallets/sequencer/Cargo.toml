@@ -20,6 +20,10 @@ frame-benchmarking = { workspace = true, optional = true }
 frame-support.workspace = true
 frame-system.workspace = true
 
+pallet-session.workspace = true
+sp-staking.workspace = true
+sp-std.workspace = true
+
 [dev-dependencies]
 serde.workspace = true
 

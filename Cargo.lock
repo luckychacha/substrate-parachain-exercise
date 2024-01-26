@@ -6419,12 +6419,15 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-session",
  "parity-scale-codec",
  "scale-info",
  "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-staking",
+ "sp-std",
 ]
 
 [[package]]
