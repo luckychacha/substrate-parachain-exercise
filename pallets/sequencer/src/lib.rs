@@ -21,7 +21,8 @@ mod benchmarking;
 pub mod pallet {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
-	use sp_staking::SessionIndex;
+	use pallet_staking::ActiveEraInfo;
+	use sp_staking::{EraIndex, SessionIndex};
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -36,15 +37,33 @@ pub mod pallet {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
+	/// The current era index.
+	///
+	/// This is the latest planned era, depending on how the Session pallet queues the validator
+	/// set, it might be active or not.
 	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	pub type Something<T> = StorageValue<_, u32>;
+	#[pallet::getter(fn current_era)]
+	pub type CurrentEra<T> = StorageValue<_, EraIndex>;
+
+	/// The active era information, it holds index and start.
+	///
+	/// The active era is the era being currently rewarded. Validator set of this era must be
+	/// equal to [`SessionInterface::validators`].
+	#[pallet::storage]
+	#[pallet::getter(fn active_era)]
+	pub type ActiveEra<T> = StorageValue<_, ActiveEraInfo>;
+
+	/// The session index at which the era start for the last [`Config::HistoryDepth`] eras.
+	///
+	/// Note: This tracks the starting session (i.e. session index when era start being active)
+	/// for the eras in `[CurrentEra - HISTORY_DEPTH, CurrentEra]`.
+	#[pallet::storage]
+	#[pallet::getter(fn eras_start_session_index)]
+	pub type ErasStartSessionIndex<T> = StorageMap<_, Twox64Concat, EraIndex, SessionIndex>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config> {
-		SomethingStored(u32, T::AccountId),
-	}
+	pub enum Event<T: Config> {}
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -52,50 +71,27 @@ pub mod pallet {
 		StorageOverflow,
 	}
 
-	
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
-		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().writes(1))]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			<Something<T>>::put(something);
-
-			Self::deposit_event(Event::SomethingStored(something, who));
-			Ok(().into())
-		}
-
-		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_parts(10_000, 0) + T::DbWeight::get().reads_writes(1,1))]
-		pub fn cause_error(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			let _who = ensure_signed(origin)?;
-
-			match <Something<T>>::get() {
-				None => Err(Error::<T>::NoneValue)?,
-				Some(old) => {
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					<Something<T>>::put(new);
-					Ok(().into())
-				},
-			}
-		}
-	}
+	impl<T: Config> Pallet<T> {}
 }
 
 impl<T: Config> SessionManager<T::AccountId> for Pallet<T> {
-    fn new_session(new_index: SessionIndex) -> Option<Vec<T::AccountId>> {
-        todo!()
-    }
+	fn new_session(new_index: SessionIndex) -> Option<Vec<T::AccountId>> {
+		// Trigger new era if at the last session of the current era.
+		// Update CurrentEra index and ErasStartSessionIndex.
+		<CurrentEra<T>>::put(0);
+		todo!()
+	}
 
-    fn end_session(end_index: SessionIndex) {
-        todo!()
-    }
+	fn end_session(end_index: SessionIndex) {
+		todo!()
+	}
 
-    fn start_session(start_index: SessionIndex) {
-        todo!()
-    }
+	fn start_session(start_index: SessionIndex) {
+		// Update ActiveEra if start_index == ErasStartSessionIndex of CurrentEra.
+		todo!()
+	}
 }
