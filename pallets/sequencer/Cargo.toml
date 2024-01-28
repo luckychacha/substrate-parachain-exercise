@@ -23,6 +23,9 @@ pallet-session.workspace = true
 sp-staking.workspace = true
 sp-std.workspace = true
 
+# Local
+ep-sequencer.workspace = true
+
 [dev-dependencies]
 serde.workspace = true
 

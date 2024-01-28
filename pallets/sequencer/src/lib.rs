@@ -21,8 +21,8 @@ mod benchmarking;
 pub mod pallet {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
-	use pallet_staking::ActiveEraInfo;
 	use sp_staking::{EraIndex, SessionIndex};
+	use ep_sequencer::ActiveEraInfo;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {

@@ -5,6 +5,7 @@ panic = "unwind"
 members = [
 	"node",
 	"pallets/*",
+	"primitives/sequencer",
 	"runtime",
 ]
 resolver = "2"
@@ -22,7 +23,7 @@ hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 smallvec = "1.11.0"
-serde = { version = "1.0.188" }
+serde = { version = "1.0.195", default-features = false, features = ["alloc", "derive"] }
 clap = { version = "4.4.2", features = ["derive"] }
 jsonrpsee = { version = "0.16.2", features = ["server"] }
 futures = "0.3.28"
@@ -31,6 +32,7 @@ futures = "0.3.28"
 parachain-template-runtime = { path = "runtime" }
 pallet-parachain-template = { path = "pallets/template", default-features = false }
 pallet-sequencer = { path = "pallets/sequencer", default-features = false }
+ep-sequencer = { path = "primitives/sequencer", default-features = false }
 
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "release-polkadot-v1.1.0" }
