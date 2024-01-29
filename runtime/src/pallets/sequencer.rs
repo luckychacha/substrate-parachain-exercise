@@ -9,4 +9,5 @@ parameter_types! {
 impl pallet_sequencer::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SessionsPerEra = SessionsPerEra;
+	type HistoryDepth = frame_support::traits::ConstU32<84>;
 }
