@@ -4,7 +4,7 @@ use codec::FullCodec;
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use frame_support::PalletId;
 pub use pallet::*;
-use pallet_session::SessionManager;
+// use pallet_session::SessionManager;
 use sp_staking::SessionIndex;
 use sp_std::vec::Vec;
 
@@ -78,20 +78,28 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {}
 }
 
-impl<T: Config> SessionManager<T::AccountId> for Pallet<T> {
-	fn new_session(new_index: SessionIndex) -> Option<Vec<T::AccountId>> {
-		// Trigger new era if at the last session of the current era.
-		// Update CurrentEra index and ErasStartSessionIndex.
-		<CurrentEra<T>>::put(0);
-		todo!()
-	}
+pub struct SessionManager<I>(sp_std::marker::PhantomData<I>);
 
-	fn end_session(end_index: SessionIndex) {
-		todo!()
-	}
+impl<I: pallet_session::SessionManager<ValidatorId>, ValidatorId> pallet_session::SessionManager<ValidatorId> for SessionManager<I> {
+    fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+        let new_session = I::new_session(new_index);
 
-	fn start_session(start_index: SessionIndex) {
+        if let Some(_validators) = &new_session {
+			// Use these validators to do the election.
+            // Trigger new era if at the last session of the current era.
+			// Update CurrentEra index and ErasStartSessionIndex.
+        }
+
+        new_session
+    }
+
+    fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+        I::new_session_genesis(new_index)
+    }
+
+    fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
+    fn start_session(start_index: SessionIndex) {
+		I::start_session(start_index);
 		// Update ActiveEra if start_index == ErasStartSessionIndex of CurrentEra.
-		todo!()
 	}
 }
