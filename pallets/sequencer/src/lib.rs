@@ -6,6 +6,7 @@ use frame_support::sp_runtime::traits::{AccountIdConversion, Get};
 use frame_support::{BoundedVec, PalletId};
 pub use pallet::*;
 use sp_core::ConstU32;
+use sp_runtime::traits::Bounded;
 use sp_std::vec::Vec;
 use sp_staking::{EraIndex, SessionIndex};
 
@@ -187,12 +188,27 @@ where
     fn new_session(new_index: SessionIndex) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
         let new_session = I::new_session(new_index);
 		// log validators
-		log::info!("1 validators: {:?}", new_session);
-        // if let Some(validators) = &new_session {
+        if let Some(validators) = &new_session {
+			// log::info!("1 validators: {:?}", new_session);
+			// iter through validators
+			let mut validators_vec = Vec::new();
+			for validator in validators {
+				validators_vec.push(validator.clone());
+			}
+
+			let tmp: BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>> = validators_vec.try_into().expect("too many validators");
+			// log::info!("2 validators: {:?}", validators_vec);
+			// insert into ErasSequencers storage
+			ErasSequencers::<T>::insert(
+				new_index,
+				tmp
+			);
+			
+
         //     // Trigger new era if at the last session of the current era.
 		// 	// Update CurrentEra index and ErasStartSessionIndex.
 		// 	Pallet::<T>::new_session(new_index, false, validators);
-        // }
+        }
 
         new_session
     }
