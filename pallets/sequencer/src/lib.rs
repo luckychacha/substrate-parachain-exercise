@@ -129,12 +129,15 @@ impl <T: Config> Pallet<T> {
 		todo!()
 	}
 
-	fn new_session(session_index: SessionIndex, is_genesis: bool) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
+	fn new_session(session_index: SessionIndex, is_genesis: bool, validators: &Vec<T::AccountId>) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
 		if let Some(current_era) = Self::current_era() {
 			let current_era_start_session_index = Self::eras_start_session_index(current_era).unwrap_or_else(|| {
 				frame_support::print("Error: start_session_index must be set for current_era");
 				0
 			});
+
+			// log validators
+			log::info!("2 validators: {:?}", validators);
 
 			let era_length = session_index.saturating_sub(current_era_start_session_index); // Must never happen.
 
@@ -174,22 +177,27 @@ impl<T: Config> EraInfo<T> {
 	}
 }
 
-pub struct SessionManager<I>(sp_std::marker::PhantomData<I>);
+pub struct SessionManager<I, T>(sp_std::marker::PhantomData<(I, T)>);
 
-impl<I: pallet_session::SessionManager<ValidatorId>, ValidatorId> pallet_session::SessionManager<ValidatorId> for SessionManager<I> {
-    fn new_session(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+impl<I, T> pallet_session::SessionManager<<T as frame_system::Config>::AccountId> for SessionManager<I, T>
+where
+	I: pallet_session::SessionManager<<T as frame_system::Config>::AccountId>,
+	T: Config,
+{
+    fn new_session(new_index: SessionIndex) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
         let new_session = I::new_session(new_index);
-
-        if let Some(_validators) = &new_session {
-			// Use these validators to do the election.
-            // Trigger new era if at the last session of the current era.
-			// Update CurrentEra index and ErasStartSessionIndex.
-        }
+		// log validators
+		log::info!("1 validators: {:?}", new_session);
+        // if let Some(validators) = &new_session {
+        //     // Trigger new era if at the last session of the current era.
+		// 	// Update CurrentEra index and ErasStartSessionIndex.
+		// 	Pallet::<T>::new_session(new_index, false, validators);
+        // }
 
         new_session
     }
 
-    fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<ValidatorId>> {
+    fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
         I::new_session_genesis(new_index)
     }
 

@@ -424,7 +424,8 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 }
 
 parameter_types! {
-	pub const Period: u32 = 4 * HOURS;
+	// pub const Period: u32 = 4 * HOURS;
+	pub const Period: u32 = 1 * MINUTES;
 	pub const Offset: u32 = 0;
 }
 
@@ -435,7 +436,7 @@ impl pallet_session::Config for Runtime {
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
 	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
 	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
-	type SessionManager = pallet_sequencer::SessionManager<CollatorSelection>;
+	type SessionManager = pallet_sequencer::SessionManager<CollatorSelection, Runtime>;
 	// Essentially just Aura, but let's be pedantic.
 	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
