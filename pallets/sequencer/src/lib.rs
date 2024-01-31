@@ -38,6 +38,9 @@ pub mod pallet {
 		/// Number of eras to keep in history.
 		#[pallet::constant]
 		type HistoryDepth: Get<u32>;
+
+		#[pallet::constant]
+		type MinSequencerCount: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -82,6 +85,16 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
+	#[pallet::storage]
+	#[pallet::unbounded]
+	pub type RestakeData<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		u128,
+		ValueQuery,
+	>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {}
@@ -106,39 +119,79 @@ impl <T: Config> Pallet<T> {
 		ErasStartSessionIndex::<T>::remove(era_index);
 	}
 
-	fn try_trigger_new_era(session_index: SessionIndex, is_genesis: bool) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
-		// todo: Elect Sequencer
-
+	fn try_trigger_new_era(start_session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
+		match CurrentEra::<T>::get() {
+			None => {
+				CurrentEra::<T>::put(0);
+				ErasStartSessionIndex::<T>::insert(&0, &start_session_index);
+			},
+			_ => (),
+		}
 		
-		todo!()	
+		Self::trigger_new_era(start_session_index, validators)
 	}
 
-	fn trigger_new_era(session_index: SessionIndex, is_genesis: bool) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
+	fn trigger_new_era(start_session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
 		let new_planned_era = CurrentEra::<T>::mutate(|s| {
 			*s = Some(s.map(|s| s + 1).unwrap_or(0));
 			s.unwrap()
 		});
 
-		ErasStartSessionIndex::<T>::insert(&new_planned_era, &session_index);
+		ErasStartSessionIndex::<T>::insert(&new_planned_era, &start_session_index);
 
 		if let Some(old_era) = new_planned_era.checked_sub(T::HistoryDepth::get()) {
 			Self::clear_era_information(old_era);
 		}
 
-		// EraInfo::<T>::set_sequencer(new_planned_era, validators);
+		// let mut validators_vec = Vec::new();
+		// for validator in validators {
+		// 	validators_vec.push(validator.clone());
+		// }
 
-		todo!()
+		// todo: iter RestakeData and order by restake amount descending and compare with validators_vec to filter at least MinSequencerCount validators
+		let min_sequencers = T::MinSequencerCount::get() as usize;
+		let (total_stake, num_stakers) = RestakeData::<T>::iter()
+			.fold((0u128, 0usize), |(total_stake, count), (_, stake)| {
+				(total_stake + stake, count + 1)
+			});
+
+		let average_stake = if num_stakers > 0 { total_stake / num_stakers as u128 } else { 0 };
+
+		// 2. filter amount greater than avg's 2/3 validators
+		let two_thirds_average = (average_stake * 2) / 3;
+		let mut sequencers = Vec::new();
+	
+		for validator in validators {
+			if RestakeData::<T>::get(validator) >= two_thirds_average {
+				sequencers.push(validator.clone());
+			}
+		}
+	
+		// 3. 如果选出的sequencer数量小于min_sequencers，继续添加validators
+		if sequencers.len() < min_sequencers {
+			for validator in validators {
+				if !sequencers.contains(validator) {
+					sequencers.push(validator.clone());
+					if sequencers.len() >= min_sequencers {
+						break;
+					}
+				}
+			}
+		}
+
+		let bounded_sequencers: BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>> = sequencers.try_into().expect("too many validators");
+
+		EraInfo::<T>::set_sequencer(start_session_index, bounded_sequencers.clone());
+
+		Some(bounded_sequencers)
 	}
 
-	fn new_session(session_index: SessionIndex, is_genesis: bool, validators: &Vec<T::AccountId>) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
+	fn new_session(session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
 		if let Some(current_era) = Self::current_era() {
 			let current_era_start_session_index = Self::eras_start_session_index(current_era).unwrap_or_else(|| {
 				frame_support::print("Error: start_session_index must be set for current_era");
 				0
 			});
-
-			// log validators
-			log::info!("2 validators: {:?}", validators);
 
 			let era_length = session_index.saturating_sub(current_era_start_session_index); // Must never happen.
 
@@ -150,16 +203,18 @@ impl <T: Config> Pallet<T> {
 				// Only go to `try_trigger_new_era` if deadline reached.
 				Forcing::NotForcing if era_length >= T::SessionsPerEra::get() => (),
 				_ => {
-					// Either `Forcing::ForceNone`,
-					// or `Forcing::NotForcing if era_length >= T::SessionsPerEra::get()`.
 					return None
 				},
 			}
 
 			// New Era
-			let maybe_new_era_validators = Self::try_trigger_new_era(session_index, is_genesis);
+			let maybe_new_era_validators = Self::try_trigger_new_era(session_index, validators);
+			maybe_new_era_validators
+		} else {
+			// Set initial era.
+			log::info!("Starting the first era.");
+			Self::try_trigger_new_era(session_index, validators)
 		}
-		todo!()
 	}
 }
 
@@ -172,9 +227,9 @@ impl<T: Config> EraInfo<T> {
 	/// Store exposure for elected sequencers at start of an era.
 	pub fn set_sequencer(
 		era: EraIndex,
-		validators: BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>,
+		sequencers: BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>,
 	) {
-		<ErasSequencers<T>>::insert(era, &validators);
+		<ErasSequencers<T>>::insert(era, &sequencers);
 	}
 }
 
@@ -189,25 +244,7 @@ where
         let new_session = I::new_session(new_index);
 		// log validators
         if let Some(validators) = &new_session {
-			// log::info!("1 validators: {:?}", new_session);
-			// iter through validators
-			let mut validators_vec = Vec::new();
-			for validator in validators {
-				validators_vec.push(validator.clone());
-			}
-
-			let tmp: BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>> = validators_vec.try_into().expect("too many validators");
-			// log::info!("2 validators: {:?}", validators_vec);
-			// insert into ErasSequencers storage
-			ErasSequencers::<T>::insert(
-				new_index,
-				tmp
-			);
-			
-
-        //     // Trigger new era if at the last session of the current era.
-		// 	// Update CurrentEra index and ErasStartSessionIndex.
-		// 	Pallet::<T>::new_session(new_index, false, validators);
+			Pallet::<T>::new_session(new_index, validators);
         }
 
         new_session
