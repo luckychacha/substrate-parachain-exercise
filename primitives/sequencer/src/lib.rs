@@ -1,29 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "256"]
 
-use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
-use frame_support::{
-	defensive, defensive_assert,
-	traits::{
-		ConstU32, Currency, Defensive, DefensiveMax, DefensiveSaturating, Get, LockIdentifier,
-	},
-	weights::Weight,
-	BoundedVec, CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
-};
-use scale_info::TypeInfo;
-use sp_runtime::{
-	curve::PiecewiseLinear,
-	traits::{AtLeast32BitUnsigned, Convert, StaticLookup, Zero},
-	Perbill, Perquintill, Rounding, RuntimeDebug, Saturating,
-};
-use sp_staking::{EraIndex, SessionIndex};
+use codec::{Decode, Encode, MaxEncodedLen};
 
-// use sp_staking::{
-// 	offence::{Offence, OffenceError, ReportOffence},
-// 	EraIndex, ExposurePage, OnStakingUpdate, Page, PagedExposureMetadata, SessionIndex,
-// 	StakingAccount,
-// };
-use sp_std::{collections::btree_map::BTreeMap, prelude::*};
+use scale_info::TypeInfo;
+use sp_runtime::{RuntimeDebug, Saturating};
+use sp_staking::EraIndex;
+
+use sp_std::prelude::*;
 
 /// Mode of era-forcing.
 #[derive(

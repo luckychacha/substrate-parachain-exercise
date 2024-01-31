@@ -6,8 +6,8 @@ use frame_support::traits::{Get, UnixTime};
 use frame_support::BoundedVec;
 pub use pallet::*;
 use sp_core::ConstU32;
-use sp_std::vec::Vec;
 use sp_staking::{EraIndex, SessionIndex};
+use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -22,10 +22,10 @@ type Sequencer<T> = (<T as frame_system::Config>::AccountId, u128);
 
 #[frame_support::pallet]
 pub mod pallet {
+	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::traits::SaturatedConversion;
-	use super::*;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -48,7 +48,6 @@ pub mod pallet {
 		/// It is guaranteed to start being called from the first `on_finalize`. Thus value at
 		/// genesis is not used.
 		type UnixTime: UnixTime;
-
 	}
 
 	#[pallet::pallet]
@@ -95,13 +94,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn restake_data)]
-	pub type RestakeData<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		u128,
-		ValueQuery,
-	>;
+	pub type RestakeData<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u128, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -132,7 +125,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		// Temp Set RestakeData
 		#[pallet::weight({0})]
 		#[pallet::call_index(0)]
@@ -147,14 +139,16 @@ pub mod pallet {
 	}
 }
 
-impl <T: Config> Pallet<T> {
-
+impl<T: Config> Pallet<T> {
 	/// Clear all era information for given era.
 	pub(crate) fn clear_era_information(era_index: EraIndex) {
 		ErasStartSessionIndex::<T>::remove(era_index);
 	}
 
-	fn try_trigger_new_era(start_session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
+	fn try_trigger_new_era(
+		start_session_index: SessionIndex,
+		validators: &Vec<T::AccountId>,
+	) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
 		match CurrentEra::<T>::get() {
 			None => {
 				CurrentEra::<T>::put(0);
@@ -162,11 +156,14 @@ impl <T: Config> Pallet<T> {
 			},
 			_ => (),
 		}
-		
+
 		Self::trigger_new_era(start_session_index, validators)
 	}
 
-	fn trigger_new_era(start_session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
+	fn trigger_new_era(
+		start_session_index: SessionIndex,
+		validators: &Vec<T::AccountId>,
+	) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
 		let new_planned_era = CurrentEra::<T>::mutate(|s| {
 			*s = Some(s.map(|s| s + 1).unwrap_or(0));
 			s.unwrap()
@@ -189,17 +186,21 @@ impl <T: Config> Pallet<T> {
 		// 2. filter amount greater than avg's 2/3 validators
 		let two_thirds_average = {
 			let temp = average_stake * 2;
-			if temp >= 3 { temp / 3 } else { 1 }
+			if temp >= 3 {
+				temp / 3
+			} else {
+				1
+			}
 		};
 		let mut sequencers = Vec::new();
-	
+
 		for validator in validators {
 			let stake = RestakeData::<T>::get(validator);
 			if stake >= two_thirds_average {
 				sequencers.push((validator.clone(), stake));
 			}
 		}
-	
+
 		// 3. if sequencer amount less than min_sequencers，add more validators to sequencers until sequencers.len() >= min_sequencers
 		if sequencers.len() < min_sequencers {
 			for validator in validators {
@@ -213,19 +214,24 @@ impl <T: Config> Pallet<T> {
 			}
 		}
 
-		let bounded_sequencers: BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>> = sequencers.try_into().expect("too many validators");
+		let bounded_sequencers: BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>> =
+			sequencers.try_into().expect("too many validators");
 
 		EraInfo::<T>::set_sequencer(start_session_index, bounded_sequencers.clone());
 
 		Some(bounded_sequencers)
 	}
 
-	fn new_session(session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
+	fn new_session(
+		session_index: SessionIndex,
+		validators: &Vec<T::AccountId>,
+	) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
 		if let Some(current_era) = Self::current_era() {
-			let current_era_start_session_index = Self::eras_start_session_index(current_era).unwrap_or_else(|| {
-				frame_support::print("Error: start_session_index must be set for current_era");
-				0
-			});
+			let current_era_start_session_index = Self::eras_start_session_index(current_era)
+				.unwrap_or_else(|| {
+					frame_support::print("Error: start_session_index must be set for current_era");
+					0
+				});
 
 			let era_length = session_index.saturating_sub(current_era_start_session_index); // Must never happen.
 
@@ -236,9 +242,7 @@ impl <T: Config> Pallet<T> {
 				Forcing::ForceAlways => (),
 				// Only go to `try_trigger_new_era` if deadline reached.
 				Forcing::NotForcing if era_length >= T::SessionsPerEra::get() => (),
-				_ => {
-					return None
-				},
+				_ => return None,
 			}
 
 			// New Era
@@ -301,30 +305,35 @@ impl<T: Config> EraInfo<T> {
 
 pub struct SessionManager<I, T>(sp_std::marker::PhantomData<(I, T)>);
 
-impl<I, T> pallet_session::SessionManager<<T as frame_system::Config>::AccountId> for SessionManager<I, T>
+impl<I, T> pallet_session::SessionManager<<T as frame_system::Config>::AccountId>
+	for SessionManager<I, T>
 where
 	I: pallet_session::SessionManager<<T as frame_system::Config>::AccountId>,
 	T: Config,
 {
-    fn new_session(new_index: SessionIndex) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
-        let new_session = I::new_session(new_index);
-        if let Some(validators) = &new_session {
-			Pallet::<T>::new_session(new_index, validators);
-        }
-
-        new_session
-    }
-
-    fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
-        let new_session = I::new_session_genesis(new_index);
+	fn new_session(new_index: SessionIndex) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
+		let new_session = I::new_session(new_index);
 		if let Some(validators) = &new_session {
 			Pallet::<T>::new_session(new_index, validators);
-        }
-		new_session
-    }
+		}
 
-    fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
-    fn start_session(start_index: SessionIndex) {
+		new_session
+	}
+
+	fn new_session_genesis(
+		new_index: SessionIndex,
+	) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
+		let new_session = I::new_session_genesis(new_index);
+		if let Some(validators) = &new_session {
+			Pallet::<T>::new_session(new_index, validators);
+		}
+		new_session
+	}
+
+	fn end_session(end_index: SessionIndex) {
+		I::end_session(end_index);
+	}
+	fn start_session(start_index: SessionIndex) {
 		I::start_session(start_index);
 		// Update ActiveEra if start_index == ErasStartSessionIndex of CurrentEra.
 		Pallet::<T>::start_session(start_index);
