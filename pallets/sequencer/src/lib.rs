@@ -1,12 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::FullCodec;
-use ep_sequencer::Forcing;
-use frame_support::sp_runtime::traits::{AccountIdConversion, Get};
-use frame_support::{BoundedVec, PalletId};
+use ep_sequencer::{ActiveEraInfo, Forcing};
+use frame_support::traits::{Get, UnixTime};
+use frame_support::BoundedVec;
 pub use pallet::*;
 use sp_core::ConstU32;
-use sp_runtime::traits::Bounded;
 use sp_std::vec::Vec;
 use sp_staking::{EraIndex, SessionIndex};
 
@@ -19,12 +18,14 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+type Sequencer<T> = (<T as frame_system::Config>::AccountId, u128);
+
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use ep_sequencer::{ActiveEraInfo, Forcing};
-	use sp_staking::{EraIndex, SessionIndex};
+	use sp_runtime::traits::SaturatedConversion;
+	use super::*;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -41,6 +42,13 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type MinSequencerCount: Get<u32>;
+
+		/// Time used for computing era duration.
+		///
+		/// It is guaranteed to start being called from the first `on_finalize`. Thus value at
+		/// genesis is not used.
+		type UnixTime: UnixTime;
+
 	}
 
 	#[pallet::pallet]
@@ -76,17 +84,17 @@ pub mod pallet {
 	pub type ForceEra<T> = StorageValue<_, Forcing, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::unbounded]
+	#[pallet::getter(fn eras_sequencers)]
 	pub type ErasSequencers<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
 		EraIndex,
-		BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>,
+		BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>,
 		ValueQuery,
 	>;
 
 	#[pallet::storage]
-	#[pallet::unbounded]
+	#[pallet::getter(fn restake_data)]
 	pub type RestakeData<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
@@ -106,10 +114,37 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_finalize(_n: BlockNumberFor<T>) {
+			// Set the start of the first era.
+			if let Some(mut active_era) = Self::active_era() {
+				if active_era.start.is_none() {
+					let now_as_millis_u64 = T::UnixTime::now().as_millis().saturated_into::<u64>();
+					active_era.start = Some(now_as_millis_u64);
+					// This write only ever happens once, we don't include it in the weight in
+					// general
+					ActiveEra::<T>::put(active_era);
+				}
+			}
+			// `on_finalize` weight is tracked in `on_initialize`
+		}
+	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+
+		// Temp Set RestakeData
+		#[pallet::weight({0})]
+		#[pallet::call_index(0)]
+		pub fn deposit(
+			_origin: OriginFor<T>,
+			account_id: T::AccountId,
+			amount: u128,
+		) -> DispatchResultWithPostInfo {
+			RestakeData::<T>::insert(&account_id, amount);
+			Ok(().into())
+		}
+	}
 }
 
 impl <T: Config> Pallet<T> {
@@ -119,7 +154,7 @@ impl <T: Config> Pallet<T> {
 		ErasStartSessionIndex::<T>::remove(era_index);
 	}
 
-	fn try_trigger_new_era(start_session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
+	fn try_trigger_new_era(start_session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
 		match CurrentEra::<T>::get() {
 			None => {
 				CurrentEra::<T>::put(0);
@@ -131,7 +166,7 @@ impl <T: Config> Pallet<T> {
 		Self::trigger_new_era(start_session_index, validators)
 	}
 
-	fn trigger_new_era(start_session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
+	fn trigger_new_era(start_session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
 		let new_planned_era = CurrentEra::<T>::mutate(|s| {
 			*s = Some(s.map(|s| s + 1).unwrap_or(0));
 			s.unwrap()
@@ -143,12 +178,6 @@ impl <T: Config> Pallet<T> {
 			Self::clear_era_information(old_era);
 		}
 
-		// let mut validators_vec = Vec::new();
-		// for validator in validators {
-		// 	validators_vec.push(validator.clone());
-		// }
-
-		// todo: iter RestakeData and order by restake amount descending and compare with validators_vec to filter at least MinSequencerCount validators
 		let min_sequencers = T::MinSequencerCount::get() as usize;
 		let (total_stake, num_stakers) = RestakeData::<T>::iter()
 			.fold((0u128, 0usize), |(total_stake, count), (_, stake)| {
@@ -158,20 +187,25 @@ impl <T: Config> Pallet<T> {
 		let average_stake = if num_stakers > 0 { total_stake / num_stakers as u128 } else { 0 };
 
 		// 2. filter amount greater than avg's 2/3 validators
-		let two_thirds_average = (average_stake * 2) / 3;
+		let two_thirds_average = {
+			let temp = average_stake * 2;
+			if temp >= 3 { temp / 3 } else { 1 }
+		};
 		let mut sequencers = Vec::new();
 	
 		for validator in validators {
-			if RestakeData::<T>::get(validator) >= two_thirds_average {
-				sequencers.push(validator.clone());
+			let stake = RestakeData::<T>::get(validator);
+			if stake >= two_thirds_average {
+				sequencers.push((validator.clone(), stake));
 			}
 		}
 	
-		// 3. 如果选出的sequencer数量小于min_sequencers，继续添加validators
+		// 3. if sequencer amount less than min_sequencers，add more validators to sequencers until sequencers.len() >= min_sequencers
 		if sequencers.len() < min_sequencers {
 			for validator in validators {
-				if !sequencers.contains(validator) {
-					sequencers.push(validator.clone());
+				if !sequencers.iter().any(|(v, _)| v == validator) {
+					let stake = RestakeData::<T>::get(validator);
+					sequencers.push((validator.clone(), stake));
 					if sequencers.len() >= min_sequencers {
 						break;
 					}
@@ -179,14 +213,14 @@ impl <T: Config> Pallet<T> {
 			}
 		}
 
-		let bounded_sequencers: BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>> = sequencers.try_into().expect("too many validators");
+		let bounded_sequencers: BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>> = sequencers.try_into().expect("too many validators");
 
 		EraInfo::<T>::set_sequencer(start_session_index, bounded_sequencers.clone());
 
 		Some(bounded_sequencers)
 	}
 
-	fn new_session(session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>> {
+	fn new_session(session_index: SessionIndex, validators: &Vec<T::AccountId>) -> Option<BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>>> {
 		if let Some(current_era) = Self::current_era() {
 			let current_era_start_session_index = Self::eras_start_session_index(current_era).unwrap_or_else(|| {
 				frame_support::print("Error: start_session_index must be set for current_era");
@@ -216,6 +250,38 @@ impl <T: Config> Pallet<T> {
 			Self::try_trigger_new_era(session_index, validators)
 		}
 	}
+
+	/// Start a session potentially starting an era.
+	fn start_session(start_session: SessionIndex) {
+		let next_active_era = Self::active_era().map(|e| e.index + 1).unwrap_or(0);
+
+		if let Some(next_active_era_start_session_index) =
+			Self::eras_start_session_index(next_active_era)
+		{
+			if next_active_era_start_session_index == start_session {
+				Self::start_era();
+			} else if next_active_era_start_session_index < start_session {
+				// This arm should never happen, but better handle it than to stall the staking
+				// pallet.
+				frame_support::print("Warning: A session appears to have been skipped.");
+				Self::start_era();
+			}
+		}
+	}
+
+	/// Start a new era. It does:
+	/// * Increment `active_era.index`,
+	/// * reset `active_era.start`,
+	fn start_era() {
+		ActiveEra::<T>::mutate(|active_era| {
+			let new_index = active_era.as_ref().map(|info| info.index + 1).unwrap_or(0);
+			*active_era = Some(ActiveEraInfo {
+				index: new_index,
+				// Set new active era start in next `on_finalize`. To guarantee usage of `Time`
+				start: None,
+			});
+		});
+	}
 }
 
 /// Wrapper struct for Era related information. It is not a pure encapsulation as these storage
@@ -227,7 +293,7 @@ impl<T: Config> EraInfo<T> {
 	/// Store exposure for elected sequencers at start of an era.
 	pub fn set_sequencer(
 		era: EraIndex,
-		sequencers: BoundedVec<T::AccountId, ConstU32<{ u32::MAX }>>,
+		sequencers: BoundedVec<(T::AccountId, u128), ConstU32<{ u32::MAX }>>,
 	) {
 		<ErasSequencers<T>>::insert(era, &sequencers);
 	}
@@ -242,7 +308,6 @@ where
 {
     fn new_session(new_index: SessionIndex) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
         let new_session = I::new_session(new_index);
-		// log validators
         if let Some(validators) = &new_session {
 			Pallet::<T>::new_session(new_index, validators);
         }
@@ -251,12 +316,17 @@ where
     }
 
     fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<<T as frame_system::Config>::AccountId>> {
-        I::new_session_genesis(new_index)
+        let new_session = I::new_session_genesis(new_index);
+		if let Some(validators) = &new_session {
+			Pallet::<T>::new_session(new_index, validators);
+        }
+		new_session
     }
 
     fn end_session(end_index: SessionIndex) { I::end_session(end_index); }
     fn start_session(start_index: SessionIndex) {
 		I::start_session(start_index);
 		// Update ActiveEra if start_index == ErasStartSessionIndex of CurrentEra.
+		Pallet::<T>::start_session(start_index);
 	}
 }
