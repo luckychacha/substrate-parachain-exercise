@@ -153,6 +153,7 @@ impl<T: Config> Pallet<T> {
 			None => {
 				CurrentEra::<T>::put(0);
 				ErasStartSessionIndex::<T>::insert(&0, &start_session_index);
+				log::info!("Updated current_era to: 0");
 			},
 			_ => (),
 		}
@@ -217,7 +218,13 @@ impl<T: Config> Pallet<T> {
 		let bounded_sequencers: BoundedVec<Sequencer<T>, ConstU32<{ u32::MAX }>> =
 			sequencers.try_into().expect("too many validators");
 
-		EraInfo::<T>::set_sequencer(start_session_index, bounded_sequencers.clone());
+		EraInfo::<T>::set_sequencer(new_planned_era, bounded_sequencers.clone());
+
+		log::info!(
+			"New era #{} has started at session {}",
+			new_planned_era,
+			start_session_index,
+		);
 
 		Some(bounded_sequencers)
 	}
@@ -316,7 +323,6 @@ where
 		if let Some(validators) = &new_session {
 			Pallet::<T>::new_session(new_index, validators);
 		}
-
 		new_session
 	}
 
@@ -335,7 +341,6 @@ where
 	}
 	fn start_session(start_index: SessionIndex) {
 		I::start_session(start_index);
-		// Update ActiveEra if start_index == ErasStartSessionIndex of CurrentEra.
 		Pallet::<T>::start_session(start_index);
 	}
 }
