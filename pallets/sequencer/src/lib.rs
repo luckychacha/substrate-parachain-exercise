@@ -82,6 +82,11 @@ pub mod pallet {
 	#[pallet::getter(fn force_era)]
 	pub type ForceEra<T> = StorageValue<_, Forcing, ValueQuery>;
 
+	/// Sequencers per group
+	#[pallet::storage]
+	#[pallet::getter(fn sequencers_per_group)]
+	pub type SequencersPerGroup<T> = StorageValue<_, u32, ValueQuery>;
+
 	#[pallet::storage]
 	#[pallet::getter(fn eras_sequencers)]
 	pub type ErasSequencers<T: Config> = StorageMap<
@@ -134,6 +139,19 @@ pub mod pallet {
 			amount: u128,
 		) -> DispatchResultWithPostInfo {
 			RestakeData::<T>::insert(&account_id, amount);
+			Ok(().into())
+		}
+
+
+		// Set SequencersPerGroup
+		#[pallet::weight({1})]
+		#[pallet::call_index(1)]
+		pub fn set_sequencers_per_group(
+			origin: OriginFor<T>,
+			sequencers_per_group: u32,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+			SequencersPerGroup::<T>::put(sequencers_per_group);
 			Ok(().into())
 		}
 	}
