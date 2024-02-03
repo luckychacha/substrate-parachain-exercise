@@ -176,6 +176,9 @@ impl<T: Config> Pallet<T> {
 			Self::clear_era_information(old_era);
 		}
 
+		// TODO: Order the restake data by stake amount descending and take k*N validators with the highest stakes as sequencers. 
+
+
 		let min_sequencers = T::MinSequencerCount::get() as usize;
 		let (total_stake, num_stakers) = RestakeData::<T>::iter()
 			.fold((0u128, 0usize), |(total_stake, count), (_, stake)| {
