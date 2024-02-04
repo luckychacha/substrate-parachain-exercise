@@ -194,7 +194,9 @@ impl<T: Config> Pallet<T> {
 			Self::clear_era_information(old_era);
 		}
 
-		// TODO: Order the restake data by stake amount descending and take k*N validators with the highest stakes as sequencers. 
+		// TODO: Order the restake data by stake amount descending and take k*N validators with the highest stakes as sequencers.
+
+		// TODO: grouping sequencers into k groups, and each group has n sequencers 
 
 
 		let min_sequencers = T::MinSequencerCount::get() as usize;
