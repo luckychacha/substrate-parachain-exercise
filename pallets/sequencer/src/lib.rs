@@ -196,7 +196,7 @@ impl<T: Config> Pallet<T> {
 
 		// TODO: Order the restake data by stake amount descending and take k*N validators with the highest stakes as sequencers.
 
-		// TODO: grouping sequencers into k groups, and each group has n sequencers 
+		// TODO: grouping sequencers into k groups, and each group has n sequencers
 
 
 		let min_sequencers = T::MinSequencerCount::get() as usize;
@@ -204,6 +204,11 @@ impl<T: Config> Pallet<T> {
 			.fold((0u128, 0usize), |(total_stake, count), (_, stake)| {
 				(total_stake + stake, count + 1)
 			});
+
+		// change RestakeData into vec and sort by stake amount descending
+		let _sequencers = RestakeData::<T>::iter()
+			.map(|(k, v)| (k, v))
+			.collect::<Vec<_>>();
 
 		let average_stake = if num_stakers > 0 { total_stake / num_stakers as u128 } else { 0 };
 
