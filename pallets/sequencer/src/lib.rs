@@ -206,8 +206,13 @@ impl<T: Config> Pallet<T> {
 			});
 
 		// change RestakeData into vec and sort by stake amount descending
-		let _sequencers = RestakeData::<T>::iter()
+		let restake_data = RestakeData::<T>::iter()
 			.map(|(k, v)| (k, v))
+			.collect::<Vec<_>>();
+
+		let sorted_restake_data = restake_data
+			.into_iter()
+			.sorted_by(|a, b| b.1.cmp(&a.1))
 			.collect::<Vec<_>>();
 
 		let average_stake = if num_stakers > 0 { total_stake / num_stakers as u128 } else { 0 };
