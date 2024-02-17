@@ -23,6 +23,7 @@ smallvec = "1.11.0"
 
 # Local
 pallet-parachain-template.workspace = true
+pallet-randomness.workspace = true
 pallet-sequencer.workspace = true
 
 # Substrate
@@ -102,6 +103,7 @@ std = [
 	"pallet-session/std",
 	"pallet-sudo/std",
 	"pallet-parachain-template/std",
+	"pallet-randomness/std",
 	"pallet-sequencer/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
