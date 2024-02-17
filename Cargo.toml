@@ -25,7 +25,7 @@ hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 smallvec = "1.11.0"
-serde = { version = "1.0.195", default-features = false, features = ["alloc", "derive"] }
+serde = { version = "1.0.196", default-features = false, features = ["alloc", "derive"] }
 clap = { version = "4.4.2", features = ["derive"] }
 jsonrpsee = { version = "0.16.2", features = ["server"] }
 futures = "0.3.28"
