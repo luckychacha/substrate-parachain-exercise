@@ -12,7 +12,7 @@ build = "build.rs"
 [dependencies]
 clap.workspace = true
 log.workspace = true
-codec.workspace = true
+parity-scale-codec.workspace = true
 serde.workspace = true
 jsonrpsee.workspace = true
 futures.workspace = true

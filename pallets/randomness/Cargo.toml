@@ -19,7 +19,7 @@ hex.workspace = true
 log.workspace = true
 # manta-primitives = { path = "../../primitives/manta", default-features = false }
 # nimbus-primitives = { git = "https://github.com/manta-network/nimbus.git", tag = "v4.0.8", default-features = false }
-codec.workspace = true
+parity-scale-codec.workspace = true
 scale-info.workspace = true
 serde = { workspace = true, optional = true }
 # session-key-primitives = { path = '../../primitives/session-keys', default-features = false }
@@ -41,7 +41,7 @@ std = [
   "frame-system/std",
   "hex/std",
 #   "nimbus-primitives/std",
-#   "parity-scale-codec/std",
+  "parity-scale-codec/std",
   "scale-info/std",
   "serde",
 #   "session-key-primitives/std",

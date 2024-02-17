@@ -18,7 +18,8 @@ repository = "https://github.com/luckychacha/substrate-parachain-exercise"
 version = "0.1.0"
 
 [workspace.dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
+# codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
+parity-scale-codec = { version = "3.0.0", default-features = false, features = [ "derive" ] }
 hex = { version = "0.4.3", default-features = false }
 hex-literal = { version = "0.4.1" }
 log = { version = "0.4.20", default-features = false }

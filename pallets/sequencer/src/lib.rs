@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::FullCodec;
+use parity_scale_codec::FullCodec;
 use ep_sequencer::{ActiveEraInfo, Forcing};
 use frame_support::traits::{Get, UnixTime};
 use frame_support::BoundedVec;
