@@ -1,0 +1,47 @@
+# run like ./zombienet-macos -p native spawn config.toml
+[relaychain]
+default_command = "./bin/polkadot-v0.9.32"
+default_args = [ "-lparachain=debug" ]
+
+chain = "rococo-local"
+  # relaychain nodes are by default validators
+  [[relaychain.nodes]]
+  name = "alice"
+
+  [[relaychain.nodes]]
+  name = "bob"
+
+  [[relaychain.nodes]]
+  name = "charlie"
+
+  [[relaychain.nodes]]
+  name = "dave"
+
+[[parachains]]
+id = 1000
+cumulus_based = true
+
+  [parachains.collator]
+  name = "parachain-A-1000-collator-01"
+  command = "./bin/parachain-template-node-v0.9.32"
+
+[[parachains]]
+id = 1001
+cumulus_based = true
+
+  [parachains.collator]
+  name = "parachain-B-1001-collator-01"
+  command = "../bin/parachain-template-node-v0.9.32"
+
+# Horizontal Relay-routed Message Passing (HRMP)
+[[hrmp_channels]]
+sender = 1000
+recipient = 1001
+max_capacity = 8
+max_message_size = 8000
+
+[[hrmp_channels]]
+sender = 1001
+recipient = 1000
+max_capacity = 8
+max_message_size = 8000
