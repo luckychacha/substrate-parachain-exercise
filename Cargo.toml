@@ -22,7 +22,7 @@ version = "0.1.0"
 parity-scale-codec = { version = "3.0.0", default-features = false, features = [ "derive" ] }
 hex = { version = "0.4.3", default-features = false }
 hex-literal = { version = "0.4.1" }
-log = { version = "0.4.20", default-features = false }
+log = { version = "0.4.21", default-features = false }
 scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
 smallvec = "1.11.0"
 serde = { version = "1.0.195", default-features = false, features = ["alloc", "derive"] }
