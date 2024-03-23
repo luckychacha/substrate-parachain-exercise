@@ -14,7 +14,7 @@ for each release of Polkadot. It is generated directly to the upstream
 at each release branch using the
 [Substrate Template Generator](https://github.com/paritytech/substrate-template-generator/).
 
-👉Learn more about parachains [here](https://wiki.polkadot.network/docs/learn-parachains), and
+👉 Learn more about parachains [here](https://wiki.polkadot.network/docs/learn-parachains), and
 parathreads [here](https://wiki.polkadot.network/docs/learn-parathreads).
 
 
